@@ -1,0 +1,113 @@
+======================================
+开始拉取 Docker 镜像...
+总镜像数: 32
+======================================
+
+检查镜像: busybox:latest
+  ✅ 镜像已存在，跳过
+
+检查镜像: langgenius/dify-api:1.14.2
+  ✅ 镜像已存在，跳过
+
+检查镜像: langgenius/dify-web:1.14.2
+  ✅ 镜像已存在，跳过
+
+检查镜像: postgres:15-alpine
+  ✅ 镜像已存在，跳过
+
+检查镜像: mysql:8.0
+  ✅ 镜像已存在，跳过
+
+检查镜像: redis:6-alpine
+  ✅ 镜像已存在，跳过
+
+检查镜像: langgenius/dify-sandbox:0.2.15
+  ✅ 镜像已存在，跳过
+
+检查镜像: langgenius/dify-plugin-daemon:0.6.1-local
+  ✅ 镜像已存在，跳过
+
+检查镜像: ubuntu/squid:latest
+  ✅ 镜像已存在，跳过
+
+检查镜像: certbot/certbot
+  ✅ 镜像已存在，跳过
+
+检查镜像: nginx:latest
+  ✅ 镜像已存在，跳过
+
+检查镜像: semitechnologies/weaviate:1.27.0
+  ✅ 镜像已存在，跳过
+
+检查镜像: oceanbase/oceanbase-ce:4.3.5-lts
+  ✅ 镜像已存在，跳过
+
+检查镜像: oceanbase/seekdb:latest
+  ✅ 镜像已存在，跳过
+
+检查镜像: langgenius/qdrant:v1.8.3
+  ✅ 镜像已存在，跳过
+
+检查镜像: pgvector/pgvector:pg16
+  ✅ 镜像已存在，跳过
+
+检查镜像: vastdata/vastbase-vector
+  ✅ 镜像已存在，跳过
+
+检查镜像: tensorchord/pgvecto-rs:pg16-v0.3.0
+  ✅ 镜像已存在，跳过
+
+检查镜像: ghcr.io/chroma-core/chroma:0.5.20
+  📥 拉取镜像...
+  ❌ 拉取失败
+
+检查镜像: containers.intersystems.com/intersystems/iris-community:2025.3
+  📥 拉取镜像...
+  ❌ 拉取失败
+
+检查镜像: container-registry.oracle.com/database/free:latest
+  📥 拉取镜像...
+  ❌ 拉取失败
+
+检查镜像: quay.io/coreos/etcd:v3.5.5
+  📥 拉取镜像...
+  ❌ 拉取失败
+
+检查镜像: minio/minio:RELEASE.2023-03-20T20-16-18Z
+  ✅ 镜像已存在，跳过
+
+检查镜像: milvusdb/milvus:v2.6.3
+  ✅ 镜像已存在，跳过
+
+检查镜像: opensearchproject/opensearch:latest
+  ✅ 镜像已存在，跳过
+
+检查镜像: opensearchproject/opensearch-dashboards:latest
+  ✅ 镜像已存在，跳过
+
+检查镜像: opengauss/opengauss:7.0.0-RC1
+  ✅ 镜像已存在，跳过
+
+检查镜像: myscale/myscaledb:1.6.4
+  ✅ 镜像已存在，跳过
+
+检查镜像: matrixorigin/matrixone:2.1.1
+  ✅ 镜像已存在，跳过
+
+检查镜像: docker.elastic.co/elasticsearch/elasticsearch:8.14.3
+  📥 拉取镜像...
+  ❌ 拉取失败
+
+检查镜像: docker.elastic.co/kibana/kibana:8.14.3
+  📥 拉取镜像...
+  ❌ 拉取失败
+
+检查镜像: downloads.unstructured.io/unstructured-io/unstructured-api:latest
+  📥 拉取镜像...
+  ❌ 拉取失败
+
+======================================
+拉取完成!
+已拉取: 0 个
+已跳过: 25 个
+======================================

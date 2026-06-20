@@ -384,9 +384,11 @@ services:
       CONSOLE_API_URL: ${CONSOLE_API_URL:-}
       SERVER_CONSOLE_API_URL: ${SERVER_CONSOLE_API_URL:-http://api:5001}
       APP_API_URL: ${APP_API_URL:-}
+      NEXT_PUBLIC_API_PREFIX: /console/api
+      NEXT_PUBLIC_PUBLIC_API_PREFIX: /api
       AMPLITUDE_API_KEY: ${AMPLITUDE_API_KEY:-}
       NEXT_PUBLIC_COOKIE_DOMAIN: ${NEXT_PUBLIC_COOKIE_DOMAIN:-}
-      NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL:-ws://localhost}
+      NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL:-}
       SENTRY_DSN: ${WEB_SENTRY_DSN:-}
       NEXT_TELEMETRY_DISABLED: ${NEXT_TELEMETRY_DISABLED:-0}
       EXPERIMENTAL_ENABLE_VINEXT: ${EXPERIMENTAL_ENABLE_VINEXT:-false}
@@ -526,6 +528,8 @@ services:
   # plugin daemon
   plugin_daemon:
     image: langgenius/dify-plugin-daemon:0.6.1-local
+    extra_hosts:
+      - "marketplace.dify.ai:172.67.71.187"
     restart: always
     env_file:
       - path: ./envs/core-services/shared.env
@@ -909,123 +913,6 @@ services:
       timeout: 3s
       retries: 30
 
-  # Chroma vector database
-  chroma:
-    image: ghcr.io/chroma-core/chroma:0.5.20
-    profiles:
-      - chroma
-    restart: always
-    volumes:
-      - ./volumes/chroma:/chroma/chroma
-    environment:
-      CHROMA_SERVER_AUTHN_CREDENTIALS: ${CHROMA_SERVER_AUTHN_CREDENTIALS:-difyai123456}
-      CHROMA_SERVER_AUTHN_PROVIDER: ${CHROMA_SERVER_AUTHN_PROVIDER:-chromadb.auth.token_authn.TokenAuthenticationServerProvider}
-      IS_PERSISTENT: ${CHROMA_IS_PERSISTENT:-TRUE}
-
-  # InterSystems IRIS vector database
-  iris:
-    image: containers.intersystems.com/intersystems/iris-community:2025.3
-    profiles:
-      - iris
-    container_name: iris
-    restart: always
-    init: true
-    ports:
-      - "${IRIS_SUPER_SERVER_PORT:-1972}:1972"
-      - "${IRIS_WEB_SERVER_PORT:-52773}:52773"
-    volumes:
-      - ./volumes/iris:/durable
-      - ./iris/iris-init.script:/iris-init.script
-      - ./iris/docker-entrypoint.sh:/custom-entrypoint.sh
-    entrypoint: ["/custom-entrypoint.sh"]
-    tty: true
-    environment:
-      TZ: ${IRIS_TIMEZONE:-UTC}
-      ISC_DATA_DIRECTORY: /durable/iris
-
-  # Oracle vector database
-  oracle:
-    image: container-registry.oracle.com/database/free:latest
-    profiles:
-      - oracle
-    restart: always
-    volumes:
-      - source: oradata
-        type: volume
-        target: /opt/oracle/oradata
-      - ./startupscripts:/opt/oracle/scripts/startup
-    environment:
-      ORACLE_PWD: ${ORACLE_PWD:-Dify123456}
-      ORACLE_CHARACTERSET: ${ORACLE_CHARACTERSET:-AL32UTF8}
-
-  # Milvus vector database services
-  etcd:
-    container_name: milvus-etcd
-    image: quay.io/coreos/etcd:v3.5.5
-    profiles:
-      - milvus
-    environment:
-      ETCD_AUTO_COMPACTION_MODE: ${ETCD_AUTO_COMPACTION_MODE:-revision}
-      ETCD_AUTO_COMPACTION_RETENTION: ${ETCD_AUTO_COMPACTION_RETENTION:-1000}
-      ETCD_QUOTA_BACKEND_BYTES: ${ETCD_QUOTA_BACKEND_BYTES:-4294967296}
-      ETCD_SNAPSHOT_COUNT: ${ETCD_SNAPSHOT_COUNT:-50000}
-    volumes:
-      - ./volumes/milvus/etcd:/etcd
-    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
-    healthcheck:
-      test: ["CMD", "etcdctl", "endpoint", "health"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-    networks:
-      - milvus
-
-  minio:
-    container_name: milvus-minio
-    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
-    profiles:
-      - milvus
-    environment:
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
-    volumes:
-      - ./volumes/milvus/minio:/minio_data
-    command: minio server /minio_data --console-address ":9001"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-    networks:
-      - milvus
-
-  milvus-standalone:
-    container_name: milvus-standalone
-    image: milvusdb/milvus:v2.6.3
-    profiles:
-      - milvus
-    command: ["milvus", "run", "standalone"]
-    environment:
-      ETCD_ENDPOINTS: ${ETCD_ENDPOINTS:-etcd:2379}
-      MINIO_ADDRESS: ${MINIO_ADDRESS:-minio:9000}
-      common.security.authorizationEnabled: ${MILVUS_AUTHORIZATION_ENABLED:-true}
-    volumes:
-      - ./volumes/milvus/milvus:/var/lib/milvus
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
-      interval: 30s
-      start_period: 90s
-      timeout: 20s
-      retries: 3
-    depends_on:
-      - etcd
-      - minio
-    ports:
-      - 19530:19530
-      - 9091:9091
-    networks:
-      - milvus
-
   # Opensearch vector database
   opensearch:
     container_name: opensearch
@@ -1112,69 +999,27 @@ services:
     ports:
       - ${MATRIXONE_PORT:-6001}:${MATRIXONE_PORT:-6001}
 
-  # https://www.elastic.co/guide/en/elasticsearch/reference/current/settings.html
-  # https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html#docker-prod-prerequisites
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.3
-    container_name: elasticsearch
-    profiles:
-      - elasticsearch
-      - elasticsearch-ja
-    restart: always
+  ollama:
+    image: ollama/ollama:latest
+    restart: no
+    hostname: ollama
     volumes:
-      - ./elasticsearch/docker-entrypoint.sh:/docker-entrypoint-mount.sh
-      - dify_es01_data:/usr/share/elasticsearch/data
+      - /Users/Eliane_wu/docker/n8n/ollama-data:/root/.ollama
     environment:
-      ELASTIC_PASSWORD: ${ELASTICSEARCH_PASSWORD:-elastic}
-      VECTOR_STORE: ${VECTOR_STORE:-}
-      cluster.name: dify-es-cluster
-      node.name: dify-es0
-      discovery.type: single-node
-      xpack.license.self_generated.type: basic
-      xpack.security.enabled: "true"
-      xpack.security.enrollment.enabled: "false"
-      xpack.security.http.ssl.enabled: "false"
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_NUM_PARALLEL=4
+      - OLLAMA_MAX_LOADED_MODELS=1
+      - OLLAMA_CPU_THREADS=8
     ports:
-      - ${ELASTICSEARCH_PORT:-9200}:9200
+      - "11434:11434"
+    networks:
+      - default
     deploy:
       resources:
         limits:
-          memory: 2g
-    entrypoint: ["sh", "-c", "sh /docker-entrypoint-mount.sh"]
-    healthcheck:
-      test:
-        ["CMD", "curl", "-s", "http://localhost:9200/_cluster/health?pretty"]
-      interval: 30s
-      timeout: 10s
-      retries: 50
-
-  # https://www.elastic.co/guide/en/kibana/current/docker.html
-  # https://www.elastic.co/guide/en/kibana/current/settings.html
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.14.3
-    container_name: kibana
-    profiles:
-      - elasticsearch
-    depends_on:
-      - elasticsearch
-    restart: always
-    environment:
-      XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY: d1a66dfd-c4d3-4a0a-8290-2abcb83ab3aa
-      NO_PROXY: localhost,127.0.0.1,elasticsearch,kibana
-      XPACK_SECURITY_ENABLED: "true"
-      XPACK_SECURITY_ENROLLMENT_ENABLED: "false"
-      XPACK_SECURITY_HTTP_SSL_ENABLED: "false"
-      XPACK_FLEET_ISAIRGAPPED: "true"
-      I18N_LOCALE: zh-CN
-      SERVER_PORT: "5601"
-      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
-    ports:
-      - ${KIBANA_PORT:-5601}:5601
-    healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:5601 >/dev/null || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+          memory: 12G
+        reservations:
+          memory: 8G
 
   # unstructured .
   # (if used, you need to set ETL_TYPE to Unstructured in the api & worker service.)
@@ -1191,12 +1036,6 @@ networks:
   ssrf_proxy_network:
     driver: bridge
     internal: true
-  milvus:
-    driver: bridge
   opensearch-net:
     driver: bridge
     internal: true
-
-volumes:
-  oradata:
-  dify_es01_data:
