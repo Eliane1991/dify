@@ -1,95 +1,74 @@
 #!/bin/bash
 
-# 镜像列表（去重后）
-images=(
-    "ghcr.io/chroma-core/chroma:1.5.9"
+# Docker 镜像拉取脚本
+# 检查镜像是否存在，存在则跳过，不存在则拉取
+
+IMAGES=(
+    "busybox:latest"
+    "langgenius/dify-api:1.14.2"
+    "langgenius/dify-web:1.14.2"
+    "postgres:15-alpine"
+    "mysql:8.0"
+    "redis:6-alpine"
+    "langgenius/dify-sandbox:0.2.15"
+    "langgenius/dify-plugin-daemon:0.6.1-local"
+    "ubuntu/squid:latest"
+    "certbot/certbot"
+    "nginx:latest"
+    "semitechnologies/weaviate:1.27.0"
+    "oceanbase/oceanbase-ce:4.3.5-lts"
+    "oceanbase/seekdb:latest"
+    "langgenius/qdrant:v1.8.3"
+    "pgvector/pgvector:pg16"
+    "vastdata/vastbase-vector"
+    "tensorchord/pgvecto-rs:pg16-v0.3.0"
+    "ghcr.io/chroma-core/chroma:0.5.20"
     "containers.intersystems.com/intersystems/iris-community:2025.3"
     "container-registry.oracle.com/database/free:latest"
     "quay.io/coreos/etcd:v3.5.5"
-    "elasticsearch:latest"
-    "kibana:latest"
+    "minio/minio:RELEASE.2023-03-20T20-16-18Z"
+    "milvusdb/milvus:v2.6.3"
+    "opensearchproject/opensearch:latest"
+    "opensearchproject/opensearch-dashboards:latest"
+    "opengauss/opengauss:7.0.0-RC1"
+    "myscale/myscaledb:1.6.4"
+    "matrixorigin/matrixone:2.1.1"
+    "docker.elastic.co/elasticsearch/elasticsearch:8.14.3"
+    "docker.elastic.co/kibana/kibana:8.14.3"
     "downloads.unstructured.io/unstructured-io/unstructured-api:latest"
 )
 
-# 国内镜像加速器列表
-mirrors=(
-    "docker.mirrors.ustc.edu.cn"
-    "hub-mirror.c.163.com"
-    "mirror.baidubce.com"
-    "registry.linkease.net:5443"
-)
+total=${#IMAGES[@]}
+pulled=0
+skipped=0
 
-echo "开始拉取 ${#images[@]} 个镜像..."
-echo "========================================"
+echo "======================================"
+echo "开始拉取 Docker 镜像..."
+echo "总镜像数: $total"
+echo "======================================"
 
-success_count=0
-failed_count=0
-
-for img in "${images[@]}"; do
+for image in "${IMAGES[@]}"; do
     echo ""
-    echo "[$((success_count + failed_count + 1))/${#images[@]}] 拉取: $img"
-    echo "----------------------------------------"
-
-    # 检查本地是否已存在该镜像
-    if docker image inspect "$img" &>/dev/null; then
-        echo "⏭️  跳过: $img (本地已存在)"
-        ((success_count++))
-        continue
-    fi
-
-    # 尝试直接拉取原镜像
-    if docker pull "$img"; then
-        echo "✅ 成功: $img"
-        ((success_count++))
-        continue
-    fi
-
-    # 如果直接拉取失败，尝试使用国内镜像加速器
-    pulled=false
-    for mirror in "${mirrors[@]}"; do
-        # 根据不同类型的镜像仓库转换地址格式
-        if [[ "$img" == "ghcr.io/"* ]]; then
-            # ghcr.io 镜像
-            mirror_img="${mirror}/ghcr/${img#ghcr.io/}"
-        elif [[ "$img" == "quay.io/"* ]]; then
-            # quay.io 镜像
-            mirror_img="${mirror}/quay/${img#quay.io/}"
-        elif [[ "$img" == "docker.elastic.co/"* ]]; then
-            # elastic 镜像
-            mirror_img="${mirror}/elastic/${img#docker.elastic.co/}"
-        elif [[ "$img" == "docker.io/"* ]]; then
-            # docker.io/library/xxx -> mirror/library/xxx
-            mirror_img="${mirror}${img#docker.io}"
-        elif [[ "$img" == */* ]]; then
-            # 其他格式尝试转换
-            mirror_img="${mirror}/library/${img##*/}"
+    echo "检查镜像: $image"
+    
+    # 检查镜像是否存在
+    if docker inspect "$image" &>/dev/null; then
+        echo "  ✅ 镜像已存在，跳过"
+        ((skipped++))
+    else
+        echo "  📥 拉取镜像..."
+        if docker pull "$image"; then
+            echo "  ✅ 拉取成功"
+            ((pulled++))
         else
-            # 简单镜像名
-            mirror_img="${mirror}/library/${img}"
+            echo "  ❌ 拉取失败"
         fi
-
-        echo "尝试使用镜像加速器 $mirror: $mirror_img"
-        if docker pull "$mirror_img"; then
-            # 拉取成功后，重新打标签为原镜像名
-            echo "📦 正在修复镜像名称..."
-            docker tag "$mirror_img" "$img"
-            # 删除临时标签
-            docker rmi "$mirror_img" &>/dev/null
-            echo "✅ 成功: $img (通过加速器 $mirror)"
-            ((success_count++))
-            pulled=true
-            break
-        fi
-    done
-
-    if [ "$pulled" = false ]; then
-        echo "❌ 失败: $img (继续下一个...)"
-        ((failed_count++))
     fi
 done
 
 echo ""
-echo "========================================"
-echo "拉取完成！"
-echo "成功: $success_count"
-echo "失败: $failed_count"
+echo "======================================"
+echo "拉取完成!"
+echo "已拉取: $pulled 个"
+echo "已跳过: $skipped 个"
+echo "======================================"
